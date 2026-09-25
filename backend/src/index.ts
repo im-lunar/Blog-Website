@@ -7,7 +7,38 @@ type Bindings = {
   JWT_SECRET: string
 }
 
-const app = new Hono<{ Bindings: Bindings }>()
+type Variables = {
+  userId: string
+}
+
+const app = new Hono<{ 
+  Bindings: Bindings,
+  Variables: Variables
+}>()
+
+// Middleware
+app.use('/api/v1/blog/*', async (c, next) => {
+  const header = c.req.header("Authorization") || "";
+  const token = header.split(" ")[1];
+
+  if (!token) {
+    return c.json({ error: "Missing token" }, 401);
+  }
+ 
+  try {
+    const response = await verify(token, c.env.JWT_SECRET, "HS256");
+
+    if (response && response.id) {
+      c.set("userId", response.id as string);
+      await next();
+    } else {
+      return c.json({ error: "Unauthorized" }, 403);
+    }
+  } catch (e) {
+    return c.json({ error: "Invalid or expired token" }, 403);
+  }
+
+})
 
 function prisma(c: { env: Bindings }) {
   return createPrisma(c.env.DATABASE_URL);
