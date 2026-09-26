@@ -58,8 +58,7 @@ blogRouter.post('/', async (c) => {
     })
 
     return c.json({
-        id: blog.id,
-
+        id: blog.id
     })
 })
 
@@ -68,22 +67,80 @@ blogRouter.put('/', async (c) => {
     const db = prisma(c);
 
     const body = await c.req.json();
+    const userId = c.get("userId");
 
-    const blog = await db.post.update({
-        where: {
-            id: body.id
-        },
-        data: {
-            title: body.title,
-            content: body.content,
-            authorId: "1"
-        }
-    })
+    try {
+        const blog = await db.post.update({
+            where: {
+                id: body.id
+            },
+            data: {
+                title: body.title,
+                content: body.content,
+                authorId: userId
+            }
+        })
 
-    return c.json({ id: blog.id });
+        return c.json({ id: blog.id }, 201);
+    } catch(e) {
+        return c.json({ error: "Failed to create a blog post" }, 500);
+    }
 })
 
-// 
-blogRouter.get('/bulk', (c) => {
-    return c.text("hello hono")
+// Fetching blogs in bulk
+blogRouter.get('/bulk', async (c) => {
+    const db = prisma(c);
+    
+    try {
+        const blogs = await db.post.findMany({
+            select: {
+                id: true,
+                title: true,
+                content: true,
+                author: {
+                    select: {
+                        name: true
+                    }
+                }
+            }
+        });
+
+        return c.json({ blogs })
+    } catch(e) {
+        return c.json({ message: "Failed to fetch blogs" }, 500)
+    }
+})
+
+// Get a single blog by ID
+blogRouter.get('/:id', async (c) => {
+    const db = prisma(c);
+    const id = c.req.param("id");
+
+    try {
+        const blog = await db.post.findUnique({
+            where: {
+                id
+            },
+            select: {
+                id: true,
+                title: true,
+                content: true,
+                author: {
+                    select: {
+                        name: true
+                    }
+                }
+            }
+        });
+
+        if (!blog) {
+            return c.json({ error: "Blog not found" }, 404);
+        }
+
+        return c.json({
+            blog
+        })
+    } catch(e) {
+        return c.json({ error: "Failed to fetch the blog post"}, 500);
+    }
 })
