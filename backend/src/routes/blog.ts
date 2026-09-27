@@ -63,27 +63,28 @@ blogRouter.post('/', async (c) => {
 })
 
 // Update blog route
-blogRouter.put('/', async (c) => {
+blogRouter.put('/:id', async (c) => {
     const db = prisma(c);
 
+    const id = c.req.param("id");
     const body = await c.req.json();
     const userId = c.get("userId");
 
     try {
         const blog = await db.post.update({
             where: {
-                id: body.id
+                id: id,
+                authorId: userId   
             },
             data: {
                 title: body.title,
-                content: body.content,
-                authorId: userId
+                content: body.content
             }
         })
 
-        return c.json({ id: blog.id }, 201);
+        return c.json({ message: "Blog updated successfully", id: blog.id });
     } catch(e) {
-        return c.json({ error: "Failed to create a blog post" }, 500);
+        return c.json({ error: "Failed to update the blog" }, 403);
     }
 })
 
