@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import { createPrisma } from "../db";
 import { sign } from "hono/jwt";
+import { signupInput, signinInput } from "@im-lunar/medium-common";
 
 type Bindings = {
   DATABASE_URL: string,
@@ -24,6 +25,13 @@ userRouter.post('/signup', async (c) => {
   const db = prisma(c);
 
   const body = await c.req.json();
+  const { success } = signupInput.safeParse(body);
+  if (!success) {
+    c.status(411);
+    return c.json({
+      message: "Inputs not correct"
+    });
+  }
 
   const existing = await db.user.findUnique({ where: { email: body.email } });
   if (existing) {
@@ -51,7 +59,14 @@ userRouter.post('/signin', async (c) => {
   const db = prisma(c);
 
   const body = await c.req.json();
-
+  const { success } = signinInput.safeParse(body);
+  if (!success) {
+    c.status(411);
+    return c.json({
+      message: "Incorrect inputs"
+    });
+  }
+  
   const user = await db.user.findUnique({ where: { email: body.email } });
   if (!user || user.password !== body.password) {
     return c.json({

@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import { createPrisma } from "../db";
 import { verify } from "hono/jwt";
+import { createBlogInput, updateBlogInput } from "@im-lunar/medium-common";
 
 type Bindings = {
   DATABASE_URL: string,
@@ -47,6 +48,13 @@ blogRouter.post('/', async (c) => {
     const db = prisma(c);
 
     const body = await c.req.json();
+    const { success } = createBlogInput.safeParse(body);
+    if (!success) {
+        return c.json({
+            message: "Incorrect inputs"
+        }, 400);
+    }
+
     const userId = c.get("userId");
 
     const blog = await db.post.create({
@@ -68,6 +76,12 @@ blogRouter.put('/:id', async (c) => {
 
     const id = c.req.param("id");
     const body = await c.req.json();
+    const { success } = updateBlogInput.safeParse({ ...body, id });
+    if (!success) {
+        return c.json({
+            message: "Incorrect inputs"
+        }, 400);
+    }
     const userId = c.get("userId");
 
     try {
